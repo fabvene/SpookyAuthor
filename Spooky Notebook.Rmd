@@ -1,0 +1,130 @@
+---
+title: 'Spooky Authors with R'
+
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    number_sections: true
+    fig_caption: true
+    toc: true
+    fig_width: 7
+    fig_height: 4.5
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo=TRUE, error=FALSE)
+```
+
+```{r Libraries, message = FALSE}
+# general visualisation
+library('ggplot2') # visualisation
+library('tidyverse')
+library('tidytext')
+library('readr')
+library('wordcloud')
+
+```
+
+```{r Data,warning=FALSE, results=FALSE}
+# train <- as.tibble(fread('../input/train.csv'))
+# test <- as.tibble(fread('../input/test.csv'))
+
+train <- read_csv("train.zip")
+test <- read_csv("test.zip")
+
+```
+
+# Explore Train
+
+```{r Exploration_train}
+
+
+
+dim(train)
+
+summary(train)
+
+glimpse(train)
+
+
+
+```
+
+# Explore Test
+
+```{r explore_test}
+
+dim(test)
+summary(test)
+glimpse(test)
+
+```
+
+
+
+```{r}
+train <- train %>%
+  mutate(author = as.factor(author))
+```
+
+```{r}
+train %>% 
+  summarize(mean(nchar(text)), median(nchar(text)))
+
+train %>% 
+  group_by(author) %>% 
+  summarize(mean(nchar(text)), median(nchar(text)))
+
+train %>% 
+  mutate(Nchar = nchar(text)) %>% 
+  ggplot(aes(x=Nchar)) +
+  geom_density(aes(col=author)) +
+  scale_x_log10()
+
+
+train %>% 
+  mutate(Nchar = nchar(text)) %>% 
+  ggplot(aes(x=author, y= Nchar)) +
+  geom_boxplot() +
+  scale_y_log10()
+```
+```{r}
+train %>% 
+  mutate(Nchar = nchar(text)) %>% 
+  filter(Nchar > quantile(Nchar, .9)) %>% 
+  arrange(desc(Nchar))
+```
+
+```{r}
+library(stringr)
+
+train %>% 
+  mutate(Ncomma = str_count(text,",")) %>% 
+  group_by(author) %>% 
+  summarise(mean(Ncomma))
+
+```
+
+```{r}
+train %>% 
+  mutate(Nchar = nchar(text), Ncomma = str_count(text,","), Nsemicol = str_count(text,";"),
+         Nperiod = str_count(text,"\\.")) %>% 
+  group_by(author) %>% 
+  summarise(median(Nchar/Nperiod), mean(Ncomma/(Nchar/Nperiod)), mean(Nsemicol /(Nchar/Nperiod)))
+
+```
+
+
+
+```{r}
+t1 <- train %>% unnest_tokens(word, text)
+
+t1 %>%
+  anti_join(stop_words, by = "word") %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 50, color = c("purple4", "red4", "black")))
+```
+
